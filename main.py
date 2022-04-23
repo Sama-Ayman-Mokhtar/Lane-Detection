@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 myImage = cv2.imread("test_images/test1.jpg")
 myImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2RGB)
 
-def edgeDetection_qThreshold(myImage, orientation='horizontal', kernelSize = 3, threshold = (0, 255)):
+def edgeDetection_1D_wThreshold(myImage, orientation='horizontal', kernelSize = 3, threshold = (0, 255)):
     grayMyImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2GRAY)
 
     if orientation == 'horizontal':
@@ -24,8 +24,35 @@ def edgeDetection_qThreshold(myImage, orientation='horizontal', kernelSize = 3, 
     
     return thresholdSobelImage
 
-H_edgeDetectionImage = edgeDetection_qThreshold(myImage, 'horizontal', 3, (20,200))
-V_edgeDetectionImage = edgeDetection_qThreshold(myImage, 'vertical', 3, (20,200))
+def hls_wThreshold(myImage, thresh= (0,255)):
+    hlsImage = cv2.cvtColor(myImage, cv2.COLOR_RGB2HLS)
+    s_channel_hslImage = hlsImage[:,:,2]
+
+    thresholdSobelImage = np.zeros_like(s_channel_hslImage)
+    thresholdSobelImage[(s_channel_hslImage > thresh[0]) & (s_channel_hslImage <= thresh[1])] = 1
+    
+    return thresholdSobelImage
+
+def hsl_and_verticalEdges_wThreshold(myImage):
+
+    thresh_x = (20, 200)
+    thresh_hls = (150, 255)
+    
+    thresholdVerticalEdges = edgeDetection_1D_wThreshold(myImage, 'vertical', 5, (20, 200))
+    thresholdHLS = hls_wThreshold(myImage, (150, 255))
+    
+    # Combined binary output
+    combined_binary = np.zeros_like(thresholdVerticalEdges)
+    combined_binary[(thresholdHLS == 1) | (thresholdVerticalEdges == 1)] = 1
+
+    return combined_binary
+
+H_edgeDetectionImage = edgeDetection_1D_wThreshold(myImage, 'horizontal', 3, (20,200))
+V_edgeDetectionImage = edgeDetection_1D_wThreshold(myImage, 'vertical', 3, (20,200))
+
+hslImage = hls_wThreshold(myImage, (150, 255))
+
+combined = hsl_and_verticalEdges_wThreshold(myImage)
 
 fig = plt.figure(figsize=(8.5, 4.8))
 
@@ -46,12 +73,12 @@ ax3.axes.xaxis.set_visible(False)
 ax3.axes.yaxis.set_visible(False)
 
 ax4 = fig.add_subplot(gs1[-1, -1])
-ax4.imshow(myImage)
+ax4.imshow(hslImage, cmap='gray')
 ax4.axes.xaxis.set_visible(False)
 ax4.axes.yaxis.set_visible(False)
 
 ax5 = fig.add_subplot(gs1[1, -1])
-ax5.imshow(myImage)
+ax5.imshow(combined, cmap='gray')
 ax5.axes.xaxis.set_visible(False)
 ax5.axes.yaxis.set_visible(False)
 
