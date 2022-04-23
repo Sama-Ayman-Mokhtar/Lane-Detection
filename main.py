@@ -1,4 +1,5 @@
 import cv2
+from cv2 import threshold
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -12,7 +13,7 @@ def perspectiveTransform(myImage, transformMatix):
 
 straightLinesImage = cv2.imread("test_images/straight_lines1.jpg")
 straightLinesImage = cv2.cvtColor(straightLinesImage, cv2.COLOR_BGR2RGB)
-#straightLinesImage = undistort_image(straight_lines, mtx, dist)
+#
 
 height = straightLinesImage.shape[0]
 width = straightLinesImage.shape[1]
@@ -32,12 +33,13 @@ destiantionPoints = np.array([[destination_topLeft, destination_bottomLeft, dest
 transformMatrix = cv2.getPerspectiveTransform(sourcePoints, destiantionPoints)
 inverseTransformMatix = cv2.getPerspectiveTransform(destiantionPoints, sourcePoints)
 
-src_image = np.copy(straightLinesImage)
-src_image = cv2.polylines(src_image, sourcePoints.astype('int32'), 1, (255,0,0), thickness=6)
+# test straight line
+src_image1 = np.copy(straightLinesImage)
+src_image1 = cv2.polylines(src_image1, sourcePoints.astype('int32'), 1, (255,0,0), thickness=6)
 
-transfered_image = np.copy(straightLinesImage)
-transfered_image = perspectiveTransform(transfered_image, transformMatrix)
-transfered_image = cv2.polylines(transfered_image, destiantionPoints.astype('int32'), 1, (255,0,0), thickness=6)
+transfered_image1 = np.copy(straightLinesImage)
+transfered_image1 = perspectiveTransform(transfered_image1, transformMatrix)
+transfered_image1 = cv2.polylines(transfered_image1, destiantionPoints.astype('int32'), 1, (255,0,0), thickness=6)
 
 def edgeDetection_1D_wThreshold(myImage, orientation='horizontal', kernelSize = 3, threshold = (0, 255)):
     grayMyImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2GRAY)
@@ -79,6 +81,15 @@ def hsl_and_verticalEdges_wThreshold(myImage):
 
     return combined_binary
 
+#test curved lines
+src_image2 = cv2.imread("test_images/test2.jpg")
+src_image2 = cv2.cvtColor(src_image2, cv2.COLOR_BGR2RGB)
+#
+thresholdImage = hsl_and_verticalEdges_wThreshold(src_image2)
+
+transfered_image2 = np.copy(thresholdImage)
+transfered_image2 = perspectiveTransform(transfered_image2, transformMatrix)
+
 H_edgeDetectionImage = edgeDetection_1D_wThreshold(myImage, 'horizontal', 3, (20,200))
 V_edgeDetectionImage = edgeDetection_1D_wThreshold(myImage, 'vertical', 3, (20,200))
 
@@ -95,22 +106,22 @@ ax1.axes.xaxis.set_visible(False)
 ax1.axes.yaxis.set_visible(False)
 
 ax2 = fig.add_subplot(gs1[-1, 0])
-ax2.imshow(src_image)
+ax2.imshow(src_image1)
 ax2.axes.xaxis.set_visible(False)
 ax2.axes.yaxis.set_visible(False)
 
 ax3 = fig.add_subplot(gs1[-1, 1])
-ax3.imshow(transfered_image)
+ax3.imshow(transfered_image1)
 ax3.axes.xaxis.set_visible(False)
 ax3.axes.yaxis.set_visible(False)
 
 ax4 = fig.add_subplot(gs1[-1, -1])
-ax4.imshow(hslImage, cmap='gray')
+ax4.imshow(thresholdImage, cmap = 'gray')
 ax4.axes.xaxis.set_visible(False)
 ax4.axes.yaxis.set_visible(False)
 
 ax5 = fig.add_subplot(gs1[1, -1])
-ax5.imshow(combined, cmap='gray')
+ax5.imshow(transfered_image2, cmap='gray')
 ax5.axes.xaxis.set_visible(False)
 ax5.axes.yaxis.set_visible(False)
 
