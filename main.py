@@ -1,4 +1,5 @@
 import cv2
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import Functions
@@ -6,7 +7,12 @@ import Functions
 myImage = cv2.imread("test_images/test1.jpg")
 myImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2RGB)
 
+with open('dist_pickle.p', 'rb') as f:
+    parameters = pickle.load(f)
+    cameraMatrix = parameters['mtx']
+    distortionCoefficients = parameters['dist']
 
+undistort = Functions.undistortImage(myImage, cameraMatrix, distortionCoefficients)
 
 straightLinesImage = cv2.imread("test_images/straight_lines1.jpg")
 straightLinesImage = cv2.cvtColor(straightLinesImage, cv2.COLOR_BGR2RGB)
@@ -58,6 +64,8 @@ combined = Functions.hsl_and_verticalEdges_wThreshold(myImage)
 
 trail = Functions.testingSpeedEnhancement(myImage, transformMatrix)
 
+histogram = np.sum(transfered_image2[int(height/2):,:], axis=0)
+
 fig = plt.figure(figsize=(8.5, 4.8))
 
 gs1 = plt.GridSpec(3, 3, left = 0.05, bottom = 0.05, right = 0.95, top = 0.95, wspace = 0.05, hspace = 0.05)
@@ -67,7 +75,7 @@ ax1.axes.xaxis.set_visible(False)
 ax1.axes.yaxis.set_visible(False)
 
 ax2 = fig.add_subplot(gs1[-1, 0])
-ax2.imshow(src_image1)
+ax2.imshow(undistort)
 ax2.axes.xaxis.set_visible(False)
 ax2.axes.yaxis.set_visible(False)
 
@@ -87,9 +95,11 @@ ax5.axes.xaxis.set_visible(False)
 ax5.axes.yaxis.set_visible(False)
 
 ax6 = fig.add_subplot(gs1[0, -1])
-ax6.imshow(trail, cmap = 'gray')
-ax6.axes.xaxis.set_visible(False)
-ax6.axes.yaxis.set_visible(False)
+ax6.set_xlim([0, width])
+ax6.plot(histogram)
+#ax6.imshow(trail, cmap = 'gray')
+#ax6.axes.xaxis.set_visible(False)
+#ax6.axes.yaxis.set_visible(False)
 
 
 plt.show()
