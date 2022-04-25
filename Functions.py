@@ -45,15 +45,18 @@ def hsl_and_verticalEdges_wThreshold(myImage):
 
     return combined_binary
 
-def testingSpeedEnhancement(myImage, transformMatrix):
-    processedImage = hsl_and_verticalEdges_wThreshold(myImage)
-    processedImage = perspectiveTransform(processedImage, transformMatrix)
-    return processedImage
-
 def perspectiveTransform(myImage, transformMatix):
     imageSize = (myImage.shape[1], myImage.shape[0])
     transformedImage = cv2.warpPerspective(myImage, transformMatix, imageSize, flags=cv2.INTER_LINEAR)
     return transformedImage
+
+def testingSpeedEnhancement(myImage, cameraMatrix, distortionCoefficients ,transformMatrix):
+    processedImage = undistortImage(myImage, cameraMatrix, distortionCoefficients)
+    processedImage = hsl_and_verticalEdges_wThreshold(processedImage)
+    processedImage = perspectiveTransform(processedImage, transformMatrix)
+    return processedImage
+
+
 
 def slidingWindow(perspectiveTransformImage, windowsNUM = 10, margin = 100, threshold = 50):
     
@@ -69,7 +72,7 @@ def slidingWindow(perspectiveTransformImage, windowsNUM = 10, margin = 100, thre
     
     winHeight = int(h/windowsNUM) 
     
-    nonZero2DIndices = perspectiveTransformImage.nonzero()
+    nonZero2DIndices = np.nonzero(perspectiveTransformImage)
     nonZeroYindices = nonZero2DIndices[0]
     nonZeroXindicies = nonZero2DIndices[1]
 
@@ -83,11 +86,11 @@ def slidingWindow(perspectiveTransformImage, windowsNUM = 10, margin = 100, thre
         winXlowerBoundRight = xCurrRight - margin
         winXupperBoundRight = xCurrRight + margin
 
-        nonZeroLeft_withinWindow = ((nonZeroYindices >= winYlowerBound) & (nonZeroYindices < winYupperBound) 
-                          & (nonZeroXindicies >= winXlowerBoundLeft) & (nonZeroXindicies < winXupperBoundLeft)).nonzero()[0]
+        nonZeroLeft_withinWindow = np.nonzero(((nonZeroYindices >= winYlowerBound) & (nonZeroYindices < winYupperBound) 
+                          & (nonZeroXindicies >= winXlowerBoundLeft) & (nonZeroXindicies < winXupperBoundLeft)))[0]
 
-        nonZeroRight_withinWindow = ((nonZeroYindices >= winYlowerBound) & (nonZeroYindices < winYupperBound) 
-                          & (nonZeroXindicies >= winXlowerBoundRight)  & (nonZeroXindicies < winXupperBoundRight)).nonzero()[0]
+        nonZeroRight_withinWindow = np.nonzero(((nonZeroYindices >= winYlowerBound) & (nonZeroYindices < winYupperBound) 
+                          & (nonZeroXindicies >= winXlowerBoundRight)  & (nonZeroXindicies < winXupperBoundRight)))[0]
         
         listLeftLaneIndices.append(nonZeroLeft_withinWindow)
         listRightLaneIndices.append(nonZeroRight_withinWindow)
@@ -107,3 +110,38 @@ def slidingWindow(perspectiveTransformImage, windowsNUM = 10, margin = 100, thre
     RY = nonZeroYindices[listRightLaneIndices]
 
     return LX, LY, RX, RY
+
+def fitCurve(LX, LY, RX, RY):
+
+    leftCurve = np.polyfit(LY, LX, 2)
+    rightCurve =  np.polyfit(RY, RX, 2)
+    return leftCurve, rightCurve
+
+def generatePlottingValues(leftCurve, rightCurve, imageShape):
+    pointYaxis = np.linspace(0, imageShape[0]-1, imageShape[0])
+    
+    leftXvalues =  np.polyval(leftCurve, pointYaxis)
+    rightXvalues = np.polyval(rightCurve, pointYaxis)
+    
+    return pointYaxis, leftXvalues, rightXvalues
+
+
+def markLane(myImage, leftCurve, rightCurve, Inverse_transformMatix):
+    zerosImage = np.zeros_like(myImage[:,:,0]).astype('uint8')
+    colorImageZero = np.dstack((zerosImage, zerosImage, zerosImage))
+    
+    y, xLeft, xRight = generatePlottingValues(leftCurve, rightCurve, myImage.shape)
+
+
+    pointLeft = np.array([np.transpose(np.vstack([xLeft, y]))])
+    pointRight = np.array([np.flipud(np.transpose(np.vstack([xRight, y])))])
+    points = np.hstack((pointLeft, pointRight))
+    
+    cv2.fillPoly(colorImageZero, np.int_([points]), (0,255, 0))
+    
+    lanesInverseTransferedImage = cv2.warpPerspective(colorImageZero, Inverse_transformMatix, (myImage.shape[1], myImage.shape[0])) 
+    
+    # Combine the result with the original image
+    combined = cv2.addWeighted(myImage, 1, lanesInverseTransferedImage, 0.3, 0)
+   
+    return combined

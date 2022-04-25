@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Functions
 
-myImage = cv2.imread("test_images/test1.jpg")
+myImage = cv2.imread("test_images/test5.jpg")
 myImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2RGB)
 
 with open('dist_pickle.p', 'rb') as f:
@@ -12,7 +12,7 @@ with open('dist_pickle.p', 'rb') as f:
     cameraMatrix = parameters['mtx']
     distortionCoefficients = parameters['dist']
 
-undistort = Functions.undistortImage(myImage, cameraMatrix, distortionCoefficients)
+#undistort = Functions.undistortImage(myImage, cameraMatrix, distortionCoefficients)
 
 straightLinesImage = cv2.imread("test_images/straight_lines1.jpg")
 straightLinesImage = cv2.cvtColor(straightLinesImage, cv2.COLOR_BGR2RGB)
@@ -47,7 +47,7 @@ transfered_image1 = cv2.polylines(transfered_image1, destiantionPoints.astype('i
 
 
 #test curved lines
-src_image2 = cv2.imread("test_images/test2.jpg")
+src_image2 = cv2.imread("test_images/test5.jpg")
 src_image2 = cv2.cvtColor(src_image2, cv2.COLOR_BGR2RGB)
 #
 thresholdImage = Functions.hsl_and_verticalEdges_wThreshold(src_image2)
@@ -62,20 +62,29 @@ hslImage = Functions.hls_wThreshold(myImage, (150, 255))
 
 combined = Functions.hsl_and_verticalEdges_wThreshold(myImage)
 
-trail = Functions.testingSpeedEnhancement(myImage, transformMatrix)
+trail = Functions.testingSpeedEnhancement(myImage, cameraMatrix, distortionCoefficients, transformMatrix)
 
 histogram = np.sum(transfered_image2[int(height/2):,:], axis=0)
+
+pro_test_image_A = Functions.testingSpeedEnhancement(myImage, cameraMatrix, distortionCoefficients, transformMatrix)
+left_x, left_y, right_x, right_y = Functions.slidingWindow(pro_test_image_A)
+left_fit, right_fit = Functions.fitCurve(left_x, left_y, right_x, right_y)
+
+LX, LY, RX, RY = Functions.slidingWindow(trail)
+LF, RF = Functions.fitCurve(LX, LY, RX, RY)
+final_test_image_C = Functions.markLane(Functions.undistortImage(myImage, cameraMatrix, distortionCoefficients), LF, RF, inverseTransformMatix)
+
 
 fig = plt.figure(figsize=(8.5, 4.8))
 
 gs1 = plt.GridSpec(3, 3, left = 0.05, bottom = 0.05, right = 0.95, top = 0.95, wspace = 0.05, hspace = 0.05)
 ax1 = fig.add_subplot(gs1[:-1, :-1])
 ax1.imshow(myImage)
-ax1.axes.xaxis.set_visible(False)
-ax1.axes.yaxis.set_visible(False)
+#ax1.axes.xaxis.set_visible(False)
+#ax1.axes.yaxis.set_visible(False)
 
 ax2 = fig.add_subplot(gs1[-1, 0])
-ax2.imshow(undistort)
+ax2.imshow(final_test_image_C)
 ax2.axes.xaxis.set_visible(False)
 ax2.axes.yaxis.set_visible(False)
 
