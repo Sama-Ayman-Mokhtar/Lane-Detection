@@ -56,8 +56,6 @@ def testingSpeedEnhancement(myImage, cameraMatrix, distortionCoefficients ,trans
     processedImage = perspectiveTransform(processedImage, transformMatrix)
     return processedImage
 
-
-
 def slidingWindow(perspectiveTransformImage, windowsNUM = 10, margin = 100, threshold = 50):
     
     h = perspectiveTransformImage.shape[0]
@@ -125,7 +123,6 @@ def generatePlottingValues(leftCurve, rightCurve, imageShape):
     
     return pointYaxis, leftXvalues, rightXvalues
 
-
 def markLane(myImage, leftCurve, rightCurve, Inverse_transformMatix):
     zerosImage = np.zeros_like(myImage[:,:,0]).astype('uint8')
     colorImageZero = np.dstack((zerosImage, zerosImage, zerosImage))
@@ -145,3 +142,17 @@ def markLane(myImage, leftCurve, rightCurve, Inverse_transformMatix):
     combined = cv2.addWeighted(myImage, 1, lanesInverseTransferedImage, 0.3, 0)
    
     return combined
+
+def calcCameraOffset(leftCurve, rightCurve, imageShape):
+    h = imageShape[0]  
+    w = imageShape[1]
+    
+    leftXvalue = np.polyval(leftCurve, h)
+    rightXvalue = np.polyval(rightCurve, h)
+    
+    mid = w/2
+    laneWidthPixels = np.abs(rightXvalue - leftXvalue)
+    offset = (mid - np.mean([leftXvalue, rightXvalue])) * (3.7 / laneWidthPixels)
+
+    return offset
+
