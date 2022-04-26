@@ -156,3 +156,18 @@ def calcCameraOffset(leftCurve, rightCurve, imageShape):
 
     return offset
 
+def calcRadiusCurvature(leftCurve, rightCurve, imageShape):
+    
+    plot_y = np.linspace(0, 719, num=720)
+    leftXvalues = np.polyval(leftCurve, plot_y)
+    rightXvalues = np.polyval(rightCurve, plot_y)
+    
+    left_fit_m = np.polyfit(plot_y*(30/720), leftXvalues*(3.7/700), 2)
+    right_fit_m = np.polyfit(plot_y*(30/720), rightXvalues*(3.7/700), 2)
+    
+    leftRadiusOfCurvature = ((1 + (2*left_fit_m[0]*imageShape[0]*(30/720) + left_fit_m[1])**2)**1.5) / np.absolute(2*left_fit_m[0])
+    rightRadiusOfCurvature = ((1 + (2*right_fit_m[0]*imageShape[0]*(30/720) + right_fit_m[1])**2)**1.5) / np.absolute(2*right_fit_m[0])
+    radiusOfCurvature = np.mean([leftRadiusOfCurvature, rightRadiusOfCurvature])
+
+    return radiusOfCurvature
+
