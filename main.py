@@ -3,23 +3,27 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import Functions
-
-myImage = cv2.imread("test_images/test3.jpg")
-myImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2RGB)
+from moviepy.editor import VideoFileClip
+from IPython.display import HTML
+import Lane
+#myImage = cv2.imread("test_images/test3.jpg")
+#myImage = cv2.cvtColor(myImage, cv2.COLOR_BGR2RGB)
 
 with open('dist_pickle.p', 'rb') as f:
     parameters = pickle.load(f)
     cameraMatrix = parameters['mtx']
     distortionCoefficients = parameters['dist']
 
-undistort = Functions.undistortImage(myImage, cameraMatrix, distortionCoefficients)
+#undistort = Functions.undistortImage(myImage, cameraMatrix, distortionCoefficients)
 
-straightLinesImage = cv2.imread("test_images/straight_lines1.jpg")
-straightLinesImage = cv2.cvtColor(straightLinesImage, cv2.COLOR_BGR2RGB)
+#straightLinesImage = cv2.imread("test_images/straight_lines1.jpg")
+#straightLinesImage = cv2.cvtColor(straightLinesImage, cv2.COLOR_BGR2RGB)
 #
 
-height = straightLinesImage.shape[0]
-width = straightLinesImage.shape[1]
+#height = straightLinesImage.shape[0]
+#width = straightLinesImage.shape[1]
+
+height, width = 720, 1280
 
 source_topLeft = (592, 450)         
 source_bottomLeft = (180, height)      
@@ -36,6 +40,15 @@ destiantionPoints = np.array([[destination_topLeft, destination_bottomLeft, dest
 transformMatrix = cv2.getPerspectiveTransform(sourcePoints, destiantionPoints)
 inverseTransformMatix = cv2.getPerspectiveTransform(destiantionPoints, sourcePoints)
 
+lane = Lane.Lane()
+outputVideo = 'result.mp4'
+inputVideo = VideoFileClip("test_videos/project_video.mp4")
+process_video = lambda process_frame:process_frame()
+project_clip = inputVideo.fl_image(lambda frame: Functions.pipline(frame, lane, cameraMatrix, distortionCoefficients, transformMatrix, inverseTransformMatix))
+test_clip = project_clip
+test_clip.write_videofile(outputVideo, audio=False)
+
+'''
 # test straight line
 src_image1 = np.copy(straightLinesImage)
 src_image1 = cv2.polylines(src_image1, sourcePoints.astype('int32'), 1, (255,0,0), thickness=6)
@@ -114,3 +127,5 @@ ax6.plot(histogram)
 
 
 plt.show()
+
+'''
