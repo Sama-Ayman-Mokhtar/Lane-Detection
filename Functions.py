@@ -1,6 +1,7 @@
+import constants
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 def undistortImage(myImage, cameraMatrix, distortionCoefficientsortionCoefficients):
     return cv2.undistort(myImage, cameraMatrix, distortionCoefficientsortionCoefficients, None, cameraMatrix)
@@ -41,7 +42,7 @@ def hsl_and_verticalEdges_wThreshold(mymyImage):
     
     # Combined binary output
     combined_binary = np.zeros_like(thresholdVerticalEdges)
-    combined_binary[(thresholdHLS == 1) | (thresholdVerticalEdges == 1)] = 1
+    combined_binary[(thresholdHLS == 1) | (thresholdVerticalEdges == 1)] = 255
 
     return combined_binary
 
@@ -60,7 +61,9 @@ def slidingWindow(perspectiveTransformmyImage, windowsNUM = 10, margin = 100, th
     
     h = perspectiveTransformmyImage.shape[0]
     w = perspectiveTransformmyImage.shape[1]
-      
+    
+    outImg = np.dstack((perspectiveTransformmyImage, perspectiveTransformmyImage, perspectiveTransformmyImage))*255
+
     histogram = np.sum(perspectiveTransformmyImage[int(h/2):, :], axis=0)
        
     listLeftLaneIndices = []
@@ -84,6 +87,9 @@ def slidingWindow(perspectiveTransformmyImage, windowsNUM = 10, margin = 100, th
         winXlowerBoundRight = xCurrRight - margin
         winXupperBoundRight = xCurrRight + margin
 
+        cv2.rectangle(outImg,(winXlowerBoundLeft,winYlowerBound),(winXupperBoundLeft,winYupperBound),(0,255,0), 2) 
+        cv2.rectangle(outImg,(winXlowerBoundRight,winYlowerBound),(winXupperBoundRight,winYupperBound),(0,255,0), 2)
+        
         nonZeroLeft_withinWindow = np.nonzero(((nonZeroYindices >= winYlowerBound) & (nonZeroYindices < winYupperBound) 
                           & (nonZeroXindicies >= winXlowerBoundLeft) & (nonZeroXindicies < winXupperBoundLeft)))[0]
 
@@ -107,7 +113,28 @@ def slidingWindow(perspectiveTransformmyImage, windowsNUM = 10, margin = 100, th
     RX = nonZeroXindicies[listRightLaneIndices]
     RY = nonZeroYindices[listRightLaneIndices]
 
-    return LX, LY, RX, RY
+    leftCurve = np.polyfit(LY, LX, 2)
+    rightCurve = np.polyfit(RY, RX, 2)
+
+    outImg[nonZeroYindices[listLeftLaneIndices], nonZeroXindicies[listLeftLaneIndices]] = [255, 0, 0]
+    outImg[nonZeroYindices[listRightLaneIndices], nonZeroXindicies[listRightLaneIndices]] = [0, 0, 255]
+    
+    # Generate x and y values for plotting
+    '''
+    ploty = np.linspace(0, warped_image.shape[0]-1, warped_image.shape[0] )
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
+   
+    plt.imshow(out_img)
+    plt.plot(left_fitx, ploty, color='yellow')
+    plt.plot(right_fitx, ploty, color='yellow')
+    plt.xlim(0, 1280)
+    plt.ylim(720, 0)
+
+    '''
+
+    return LX, LY, RX, RY, outImg
 
 def fitCurve(LX, LY, RX, RY):
 
@@ -123,25 +150,26 @@ def generatePlottingValues(leftCurve, rightCurve, myImageShape):
     
     return pointYaxis, leftXvalues, rightXvalues
 
-def markLane(mymyImage, leftCurve, rightCurve, Inverse_transformMatix):
-    zerosmyImage = np.zeros_like(mymyImage[:,:,0]).astype('uint8')
+def markLane(myImage, leftCurve, rightCurve, Inverse_transformMatix):
+    zerosmyImage = np.zeros_like(myImage[:,:,0]).astype('uint8')
     colormyImageZero = np.dstack((zerosmyImage, zerosmyImage, zerosmyImage))
     
-    y, xLeft, xRight = generatePlottingValues(leftCurve, rightCurve, mymyImage.shape)
-
+    y, xLeft, xRight = generatePlottingValues(leftCurve, rightCurve, myImage.shape)
 
     pointLeft = np.array([np.transpose(np.vstack([xLeft, y]))])
     pointRight = np.array([np.flipud(np.transpose(np.vstack([xRight, y])))])
     points = np.hstack((pointLeft, pointRight))
     
+
     cv2.fillPoly(colormyImageZero, np.int_([points]), (0,255, 0))
+    cv2.polylines(colormyImageZero, np.int_([pointRight]), False, (0,0,255),10)
+    cv2.polylines(colormyImageZero, np.int_([pointLeft]), False, (255,0,0),10)
+
+    lanesInverseTransferedmyImage = cv2.warpPerspective(colormyImageZero, Inverse_transformMatix, (myImage.shape[1], myImage.shape[0])) 
     
-    lanesInverseTransferedmyImage = cv2.warpPerspective(colormyImageZero, Inverse_transformMatix, (mymyImage.shape[1], mymyImage.shape[0])) 
-    
-    # Combine the outputImage with the original myImage
-    combined = cv2.addWeighted(mymyImage, 1, lanesInverseTransferedmyImage, 0.3, 0)
+    combined = cv2.addWeighted(myImage, 1, lanesInverseTransferedmyImage, 0.3, 0)
    
-    return combined
+    return combined, colormyImageZero
 
 def calcCameraOffset(leftCurve, rightCurve, myImageShape):
     h = myImageShape[0]  
@@ -176,7 +204,7 @@ def pipline(myImage, lane, cameraMatrix, distortionCoefficients, transformMatrix
     undistortedImage = undistortImage(myImage, cameraMatrix, distortionCoefficients)
     hls_VedgesImage = hsl_and_verticalEdges_wThreshold(undistortedImage)
     birdViewImage = perspectiveTransform(hls_VedgesImage, transformMatrix)  
-    LX, LY, RX, RY = slidingWindow(birdViewImage)
+    LX, LY, RX, RY, step4_slidingWinImg = slidingWindow(birdViewImage)
     LF, RF = fitCurve(LX, LY, RX, RY)
     
     if lane.getLeftCurve() is None:
@@ -195,11 +223,47 @@ def pipline(myImage, lane, cameraMatrix, distortionCoefficients, transformMatrix
 
     lane.setLaneOffset(calcCameraOffset(lane.getLeftCurve(), lane.getRightCurve(), myImage.shape))
 
-    outputImage = markLane(undistortedImage, lane.getLeftCurve(), lane.getRightCurve(), InverseTransformMatrix)
+    markedImageCombined, markLaneImg = markLane(undistortedImage, lane.getLeftCurve(), lane.getRightCurve(), InverseTransformMatrix)
     
-    fontStyle = cv2.FONT_HERSHEY_SCRIPT_COMPLEX
+    if constants.DEBUG_MODE:
+        height, width = 1080, 1920
+        outputImage = np.zeros((height,width),'uint8')
+        outputImage = np.dstack((outputImage, outputImage, outputImage))
 
-    cv2.putText(outputImage, 'radius of curvature: {:.2f} m'.format(lane.getRadiusOfCurvature()), (100 ,100),fontStyle, 1, (255,0,0), 2)
-    cv2.putText(outputImage, 'lane offset: {:.2f} m'.format(lane.getLaneOffset()), (200 ,200), fontStyle, 1, (255,0,0), 2)
+        fontStyle = cv2.FONT_HERSHEY_SIMPLEX
+
+        step1_marking_source = cv2.polylines(undistortedImage, constants.sourcePoints.astype('int32'), 1, (255,0,0), thickness=6)
+        cv2.putText(step1_marking_source, 'Undistort', (50 ,100),fontStyle, 4, (255,0,0), 3)
+        
+        step2_hsl_edge_img = np.zeros_like(myImage)
+        step2_hsl_edge_img[:,:,0] = hls_VedgesImage
+        step2_hsl_edge_img[:,:,1] = hls_VedgesImage
+        step2_hsl_edge_img[:,:,2] = hls_VedgesImage
+        cv2.putText(step2_hsl_edge_img, 'HSL and Vertical Edges', (50 ,100),fontStyle,2 , (255,255,0), 3)
+        
+        step3_BirdView_img = np.zeros_like(myImage)
+        step3_BirdView_img[:,:,0] = birdViewImage
+        step3_BirdView_img[:,:,1] = birdViewImage
+        step3_BirdView_img[:,:,2] = birdViewImage
+        cv2.putText(step3_BirdView_img, 'Bird View', (450 ,600),fontStyle, 4, (255,255,0), 3)
+
+        cv2.putText(step4_slidingWinImg, 'Sliding Window', (450 ,650),fontStyle, 2, (255,255,0), 3)
+
+        step5_markLaneImg = markLaneImg
+        cv2.putText(step5_markLaneImg, 'Curve Fitting', (450 ,650),fontStyle, 2, (0,0,0), 3)
+
+        outputImage[0:720,0:1280] = cv2.resize(markedImageCombined, (1280,720), interpolation=cv2.INTER_AREA)
+        outputImage[0:360,1280:1920] = cv2.resize(step5_markLaneImg, (640,360), interpolation=cv2.INTER_AREA) #6
+        outputImage[360:720,1280:1920] = cv2.resize(step4_slidingWinImg, (640,360), interpolation=cv2.INTER_AREA) #5
+        outputImage[720:1080,1280:1920] = cv2.resize(step3_BirdView_img, (640,360), interpolation=cv2.INTER_AREA) #4
+        outputImage[720:1080,640:1280] = cv2.resize(step2_hsl_edge_img, (640,360), interpolation=cv2.INTER_AREA) #3
+        outputImage[720:1080,0:640] = cv2.resize(step1_marking_source, (640,360), interpolation=cv2.INTER_AREA) #2
+        
+    else:
+         outputImage = markedImageCombined
+
+
+    cv2.putText(outputImage, 'radius of curvature: {:.2f} m'.format(lane.getRadiusOfCurvature()), (450 ,600),fontStyle, 1, (0,0,0), 3)
+    cv2.putText(outputImage, 'lane offset: {:.2f} m'.format(lane.getLaneOffset()), (450 ,700), fontStyle, 1, (0,0,0), 3)
     
     return outputImage
