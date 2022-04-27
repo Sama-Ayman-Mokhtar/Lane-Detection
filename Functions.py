@@ -224,13 +224,12 @@ def pipline(myImage, lane, cameraMatrix, distortionCoefficients, transformMatrix
     lane.setLaneOffset(calcCameraOffset(lane.getLeftCurve(), lane.getRightCurve(), myImage.shape))
 
     markedImageCombined, markLaneImg = markLane(undistortedImage, lane.getLeftCurve(), lane.getRightCurve(), InverseTransformMatrix)
-    
+    fontStyle = cv2.FONT_HERSHEY_SIMPLEX
+
     if constants.DEBUG_MODE:
         height, width = 1080, 1920
         outputImage = np.zeros((height,width),'uint8')
         outputImage = np.dstack((outputImage, outputImage, outputImage))
-
-        fontStyle = cv2.FONT_HERSHEY_SIMPLEX
 
         step1_marking_source = cv2.polylines(undistortedImage, constants.sourcePoints.astype('int32'), 1, (255,0,0), thickness=6)
         cv2.putText(step1_marking_source, 'Undistort', (50 ,100),fontStyle, 4, (255,0,0), 3)
