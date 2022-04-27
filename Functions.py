@@ -32,13 +32,13 @@ def hls_wThreshold(mymyImage, thresh= (0,255)):
     
     return thresholdSobelmyImage
 
-def hsl_and_verticalEdges_wThreshold(mymyImage):
+def hsl_and_verticalEdges_wThreshold(myImage):
 
     thresh_x = (20, 200)
     thresh_hls = (150, 255)
     
-    thresholdVerticalEdges = edgeDetection_1D_wThreshold(mymyImage, 'vertical', 5, (20, 200))
-    thresholdHLS = hls_wThreshold(mymyImage, (150, 255))
+    thresholdVerticalEdges = edgeDetection_1D_wThreshold(myImage, 'vertical', 5, (20, 200))
+    thresholdHLS = hls_wThreshold(myImage, (150, 255))
     
     # Combined binary output
     combined_binary = np.zeros_like(thresholdVerticalEdges)
@@ -226,7 +226,7 @@ def pipline(myImage, lane, cameraMatrix, distortionCoefficients, transformMatrix
     markedImageCombined, markLaneImg = markLane(undistortedImage, lane.getLeftCurve(), lane.getRightCurve(), InverseTransformMatrix)
     fontStyle = cv2.FONT_HERSHEY_SIMPLEX
 
-    if constants.DEBUG_MODE:
+    if constants.DEBUG_MODE == "true":
         height, width = 1080, 1920
         outputImage = np.zeros((height,width),'uint8')
         outputImage = np.dstack((outputImage, outputImage, outputImage))
@@ -258,7 +258,7 @@ def pipline(myImage, lane, cameraMatrix, distortionCoefficients, transformMatrix
         outputImage[720:1080,640:1280] = cv2.resize(step2_hsl_edge_img, (640,360), interpolation=cv2.INTER_AREA) #3
         outputImage[720:1080,0:640] = cv2.resize(step1_marking_source, (640,360), interpolation=cv2.INTER_AREA) #2
         
-    else:
+    if constants.DEBUG_MODE == "false":
          outputImage = markedImageCombined
 
 
