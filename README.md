@@ -8,7 +8,8 @@
 ## How to Run
 1. Download the project repository 
 2. Open the cmd in the project directory
-3. 
+3. Run `python main.py true` for debugging mode ON and run `python main.py false` for debugging mode OFF
+
 ![cmd](https://user-images.githubusercontent.com/68694412/165505084-885cd4b9-4e7c-41d1-9ae4-b5f780e188b7.PNG)
 
 ## Sample Output
