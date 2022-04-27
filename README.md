@@ -6,8 +6,9 @@
 - Sama Ayman
 
 ## How to Run
-1. sdjoakdfja
-2. 
+1. Download the project repository 
+2. Open the cmd in the project directory
+3. 
 ![cmd](https://user-images.githubusercontent.com/68694412/165505084-885cd4b9-4e7c-41d1-9ae4-b5f780e188b7.PNG)
 
 ## Sample Output
